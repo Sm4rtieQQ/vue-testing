@@ -1,10 +1,18 @@
 import { shallowMount } from "@vue/test-utils";
 import RegistrationForm from "@/components/RegistrationForm.vue";
 
-const textValue = (input) => {
+type submitPayload = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+};
+
+const textValue = (input: any) => {
   return (input.element as HTMLInputElement).value;
 };
-const checkboxValue = (input) => {
+
+const checkboxValue = (input: any) => {
   return (input.element as HTMLInputElement).checked;
 };
 
@@ -166,9 +174,54 @@ describe("RegistrationForm - validation", () => {
     await emailInput.setValue("email@example.com");
     await passwordInput.setValue("secret123");
     await confirmPasswordInput.setValue("secret123");
+    await acceptTermsInput.setChecked(false);
     await button.trigger("submit");
 
     // Assert
     expect(wrapper.text()).toContain("Je moet de voorwaarden accepteren");
+  });
+});
+
+describe("RegistrationForm - submission", () => {
+  it("should emit data after succesful validation", async () => {
+    // Arrange
+    const wrapper = shallowMount(RegistrationForm);
+
+    const emailInput = wrapper.find("#email");
+    const passwordInput = wrapper.find("#password");
+    const confirmPasswordInput = wrapper.find("#confirmPassword");
+    const acceptTermsInput = wrapper.find("#acceptTerms");
+
+    const button = wrapper.find("button");
+
+    // Act
+    await emailInput.setValue("email@example.com");
+    await passwordInput.setValue("secret123");
+    await confirmPasswordInput.setValue("secret123");
+    await acceptTermsInput.setChecked(true);
+    await button.trigger("submit");
+
+    // Assert
+    const emittedData = () =>
+      wrapper.emitted("submit")?.[0]?.[0] as submitPayload;
+
+    expect(wrapper.emitted("submit")).toHaveLength(1);
+    expect(emittedData().email).toStrictEqual("email@example.com");
+    expect(emittedData().password).toStrictEqual("secret123");
+    expect(emittedData().confirmPassword).toStrictEqual("secret123");
+    expect(emittedData().acceptTerms).toStrictEqual(true);
+  });
+
+  it("should not emit data when validation fails", async () => {
+    // Arrange
+    const wrapper = shallowMount(RegistrationForm);
+
+    const button = wrapper.find("button");
+
+    // Act
+    await button.trigger("submit");
+
+    // Assert
+    expect(wrapper.emitted("submit")).toBeUndefined();
   });
 });
